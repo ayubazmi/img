@@ -1,0 +1,7 @@
+{
+  "name": "SnapGuard: Secure View-Once Sharing",
+  "description": "A high-security image sharing platform with view-once features, screenshot protection, and visitor tracking.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
