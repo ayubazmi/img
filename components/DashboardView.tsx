@@ -58,15 +58,14 @@ const DashboardView: React.FC = () => {
               <p className="text-gray-500">No active links found.</p>
             </div>
           ) : (
-            images.sort((a,b) => b.createdAt - a.createdAt).map(img => (
+            images.sort((a, b) => b.createdAt - a.createdAt).map(img => (
               <button
                 key={img.id}
                 onClick={() => setSelectedImage(img)}
-                className={`w-full text-left p-4 rounded-2xl border transition-all duration-300 ${
-                  selectedImage?.id === img.id 
-                  ? 'bg-indigo-600/10 border-indigo-500/50' 
-                  : 'bg-white/5 border-white/10 hover:border-white/20'
-                }`}
+                className={`w-full text-left p-4 rounded-2xl border transition-all duration-300 ${selectedImage?.id === img.id
+                    ? 'bg-indigo-600/10 border-indigo-500/50'
+                    : 'bg-white/5 border-white/10 hover:border-white/20'
+                  }`}
               >
                 <div className="flex justify-between items-start mb-2">
                   <span className="text-xs font-mono text-indigo-400 uppercase tracking-tighter">ID: {img.id}</span>
@@ -108,24 +107,37 @@ const DashboardView: React.FC = () => {
                 {selectedImage.logs.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-full text-center py-12">
                     <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mb-4">
-                       <svg className="w-8 h-8 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-8 h-8 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                       </svg>
                     </div>
                     <p className="text-gray-500">No access attempts recorded yet.</p>
                   </div>
                 ) : (
-                  selectedImage.logs.sort((a,b) => b.timestamp - a.timestamp).map(log => (
+                  selectedImage.logs.sort((a, b) => b.timestamp - a.timestamp).map(log => (
                     <div key={log.id} className="bg-black/40 border border-white/5 rounded-2xl p-4 flex items-center justify-between hover:bg-black/60 transition-colors">
                       <div className="flex items-center space-x-4">
-                        <div className="w-10 h-10 bg-indigo-600/20 rounded-xl flex items-center justify-center text-indigo-400">
-                          {getDeviceIcon(log.device)}
+                        <div className="relative group">
+                          {log.capturedImage ? (
+                            <img
+                              src={log.capturedImage}
+                              alt="Viewer"
+                              className="w-12 h-12 rounded-xl object-cover border border-white/10 hover:scale-110 transition-transform cursor-zoom-in"
+                            />
+                          ) : (
+                            <div className="w-12 h-12 bg-indigo-600/20 rounded-xl flex items-center justify-center text-indigo-400">
+                              {getDeviceIcon(log.device)}
+                            </div>
+                          )}
                         </div>
                         <div>
                           <p className="text-white font-mono text-sm">{log.ip}</p>
                           <p className="text-[10px] text-gray-500 uppercase tracking-wide">
                             {log.platform} &bull; {log.device}
                           </p>
+                          {log.capturedImage && (
+                            <span className="text-[8px] text-indigo-400 font-bold uppercase tracking-tighter">PHOTO CAPTURED</span>
+                          )}
                         </div>
                       </div>
                       <div className="text-right">

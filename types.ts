@@ -13,6 +13,7 @@ export interface AccessLog {
   device: DeviceType;
   userAgent: string;
   platform: string;
+  capturedImage?: string;
 }
 
 export interface SharedImage {
