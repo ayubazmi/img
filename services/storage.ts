@@ -30,6 +30,9 @@ export const addLog = (imageId: string, log: AccessLog): void => {
     images[index].logs.push(log);
     images[index].viewCount += 1;
     images[index].isViewed = true;
+    if (!images[index].expiresAt) {
+      images[index].expiresAt = Date.now() + 10000;
+    }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(images));
   }
 };

@@ -23,6 +23,7 @@ export interface SharedImage {
   createdAt: number;
   viewCount: number;
   isViewed: boolean;
+  expiresAt?: number;
   logs: AccessLog[];
 }
 

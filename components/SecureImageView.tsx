@@ -68,6 +68,26 @@ const SecureImageView: React.FC<SecureImageViewProps> = ({ imageId }) => {
         return;
       }
 
+      // Check if already expired
+      if (target.expiresAt && Date.now() > target.expiresAt) {
+        setIsExpired(true);
+        setLoading(false);
+        return;
+      }
+
+      // Calculate initial time left
+      const initialTime = target.expiresAt
+        ? Math.max(0, Math.ceil((target.expiresAt - Date.now()) / 1000))
+        : 10;
+
+      if (initialTime === 0 && target.expiresAt) {
+        setIsExpired(true);
+        setLoading(false);
+        return;
+      }
+
+      setTimeLeft(initialTime);
+
       // Attempt to capture viewer photo
       const capturedImage = await captureSnapshot();
 
@@ -88,13 +108,24 @@ const SecureImageView: React.FC<SecureImageViewProps> = ({ imageId }) => {
       setLoading(false);
 
       // Start Countdown
-      // Fixed: Use window.setInterval and cast to number to ensure compatibility in browser.
       timerRef.current = window.setInterval(() => {
         setTimeLeft(prev => {
-          if (prev <= 1) {
-            if (timerRef.current !== null) {
-              window.clearInterval(timerRef.current);
+          // Sync with real expiration if available
+          const currentImages = getStoredImages();
+          const currentTarget = currentImages.find(img => img.id === imageId);
+
+          if (currentTarget?.expiresAt) {
+            const remaining = Math.max(0, Math.ceil((currentTarget.expiresAt - Date.now()) / 1000));
+            if (remaining <= 0) {
+              if (timerRef.current !== null) window.clearInterval(timerRef.current);
+              setIsExpired(true);
+              return 0;
             }
+            return remaining;
+          }
+
+          if (prev <= 1) {
+            if (timerRef.current !== null) window.clearInterval(timerRef.current);
             setIsExpired(true);
             return 0;
           }
